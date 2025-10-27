@@ -121,6 +121,17 @@ def clamp(min_max, value):
     return min(max(-min_max, value), min_max)
 
 
+class Bullet(GamePhysicsObject):
+    """Beautiful bullet class."""
+    SPEED = 10
+
+    def __init__(self, x, y, orientation, space):
+        super().__init__(x, y, orientation, images.bullet, space, True)
+
+    def update(self):
+        self.body.velocity = pymunk.Vec2d(0, self.SPEED).rotated(self.body.angle)
+
+
 class Tank(GamePhysicsObject):
     """ Extends GamePhysicsObject and handles aspects which are specific to our tanks. """
 
@@ -210,9 +221,9 @@ class Tank(GamePhysicsObject):
         """ Check if the current tank has won (if it is has the flag and it is close to its start position). """
         return self.flag is not None and (self.start_position - self.body.position).length < 0.2
 
-    def shoot(self, space):
+    def shoot(self, space: pymunk.Space):
         """ Call this function to shoot a missile (current implementation does nothing ! you need to implement it yourself) """
-        return
+        return Bullet(self.body.position.x, self.body.position.y, self.body.angle * 360 / math.tau, space)
 
 
 class Box(GamePhysicsObject):
