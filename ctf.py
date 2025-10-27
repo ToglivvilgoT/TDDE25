@@ -64,6 +64,18 @@ for (x, y, orientation), image in zip(current_map.start_positions, images.tanks)
 flag = gameobjects.Flag(*current_map.flag_position)
 game_objects_list.append(flag)
 
+boarders = pymunk.Body(body_type=pymunk.Body.STATIC)
+min_x = 0
+max_x = current_map.width
+min_y = 0
+max_y = current_map.height
+radius = 0.01
+top = pymunk.Segment(boarders, (0, 0), (max_x, 0), radius)
+right = pymunk.Segment(boarders, (max_x, 0), (max_x, max_y), radius)
+bottom = pymunk.Segment(boarders, (0, max_y), (max_x, max_y), radius)
+left = pymunk.Segment(boarders, (0, 0), (0, max_y), radius)
+space.add(boarders, top, right, bottom, left)
+
 # ----- Main Loop -----#
 
 # -- Control whether the game run
