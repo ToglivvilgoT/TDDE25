@@ -119,6 +119,9 @@ while running:
     for object in game_objects_list:
         object.update_screen(screen)
 
+    for tank in tanks_list:
+        tank.try_grab_flag(flag)
+
     #   Redisplay the entire screen (see double buffer technique)
     pygame.display.flip()
 
