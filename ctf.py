@@ -34,7 +34,7 @@ FRAMERATE = 50
 current_map = maps.map0
 #   List of all game objects
 game_objects_list = []
-tanks_list = []
+tanks_list: list[gameobjects.Tank] = []
 
 # -- Resize the screen to the size of the current level
 screen = pygame.display.set_mode(current_map.rect().size)
@@ -47,7 +47,7 @@ for y in range(current_map.height):
 
 for y in range(current_map.height):
     for x in range(current_map.width):
-        box_type = current_map.boxAt(x, y)
+        box_type: gameobjects.Box = current_map.boxAt(x, y)
         if box_type != 0:
             box = gameobjects.get_box_with_type(x, y, box_type, space)
             game_objects_list.append(box)
@@ -66,6 +66,8 @@ game_objects_list.append(flag)
 running = True
 
 skip_update = 0
+stop_moving_timer = 0
+stop_turning_timer = 0
 
 while running:
     # -- Handle the events
@@ -74,6 +76,25 @@ while running:
         # close button of the window) or if the user press the escape key.
         if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
             running = False
+        if event.type == KEYDOWN:
+            if event.key == K_UP:
+                tanks_list[0].accelerate()
+                stop_moving_timer = 0.2
+            elif event.key == K_DOWN:
+                tanks_list[0].decelerate()
+                stop_moving_timer = 0.2
+            elif event.key == K_LEFT:
+                tanks_list[0].turn_left()
+                stop_turning_timer = 0.2
+            elif event.key == K_RIGHT:
+                tanks_list[0].turn_right()
+                stop_turning_timer = 0.2
+        if event.type == KEYUP:
+            if event.key == K_UP or event.key == K_DOWN:
+                tanks_list[0].stop_moving()
+            if event.key == K_LEFT or event.key == K_RIGHT:
+                tanks_list[0].stop_turning()
+    
     # -- Update physics
     if skip_update == 0:
         # Loop over all the game objects and update their speed in function of their
