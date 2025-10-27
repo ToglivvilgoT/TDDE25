@@ -45,7 +45,12 @@ for y in range(current_map.height):
     for x in range(current_map.width):
         background.blit(images.grass, (x * images.TILE_SIZE, y * images.TILE_SIZE))
 
-# <INSERT CREATE BOXES>
+for y in range(current_map.height):
+    for x in range(current_map.width):
+        box_type = current_map.boxAt(x, y)
+        if box_type != 0:
+            box = gameobjects.get_box_with_type(x, y, box_type, space)
+            game_objects_list.append(box)
 
 # <INSERT CREATE TANKS>
 
@@ -86,7 +91,8 @@ while running:
 
     screen.blit(background, (0, 0))
 
-    # <INSERT DISPLAY OBJECTS>
+    for object in game_objects_list:
+        object.update_screen(screen)
 
     #   Redisplay the entire screen (see double buffer technique)
     pygame.display.flip()
