@@ -125,6 +125,8 @@ while running:
 
     for tank in tanks_list:
         tank.try_grab_flag(flag)
+        if tank.has_won():
+            running = False
 
     #   Redisplay the entire screen (see double buffer technique)
     pygame.display.flip()
