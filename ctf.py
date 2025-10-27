@@ -52,7 +52,11 @@ for y in range(current_map.height):
             box = gameobjects.get_box_with_type(x, y, box_type, space)
             game_objects_list.append(box)
 
-# <INSERT CREATE TANKS>
+for (x, y, orientation), image in zip(current_map.start_positions, images.tanks):
+    tank = gameobjects.Tank(x, y, orientation, image, space)
+    tanks_list.append(tank)
+    game_objects_list.append(tank)
+
 
 # <INSERT CREATE FLAG>
 
