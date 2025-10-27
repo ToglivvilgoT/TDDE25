@@ -45,6 +45,10 @@ for y in range(current_map.height):
     for x in range(current_map.width):
         background.blit(images.grass, (x * images.TILE_SIZE, y * images.TILE_SIZE))
 
+for (x, y, _), image in zip(current_map.start_positions, images.bases):
+    base = gameobjects.GameVisibleObject(x, y, image)
+    game_objects_list.append(base)
+
 for y in range(current_map.height):
     for x in range(current_map.width):
         box_type: gameobjects.Box = current_map.boxAt(x, y)
