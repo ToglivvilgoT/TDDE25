@@ -39,7 +39,11 @@ tanks_list = []
 # -- Resize the screen to the size of the current level
 screen = pygame.display.set_mode(current_map.rect().size)
 
-# <INSERT GENERATE BACKGROUND>
+background = pygame.Surface(screen.get_size())
+
+for y in range(current_map.height):
+    for x in range(current_map.width):
+        background.blit(images.grass, (x * images.TILE_SIZE, y * images.TILE_SIZE))
 
 # <INSERT CREATE BOXES>
 
@@ -80,7 +84,7 @@ while running:
 
     # -- Update Display
 
-    # <INSERT DISPLAY BACKGROUND>
+    screen.blit(background, (0, 0))
 
     # <INSERT DISPLAY OBJECTS>
 
