@@ -57,8 +57,8 @@ for (x, y, orientation), image in zip(current_map.start_positions, images.tanks)
     tanks_list.append(tank)
     game_objects_list.append(tank)
 
-
-# <INSERT CREATE FLAG>
+flag = gameobjects.Flag(*current_map.flag_position)
+game_objects_list.append(flag)
 
 # ----- Main Loop -----#
 
