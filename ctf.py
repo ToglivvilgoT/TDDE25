@@ -76,6 +76,20 @@ bottom = pymunk.Segment(boarders, (0, max_y), (max_x, max_y), radius)
 left = pymunk.Segment(boarders, (0, 0), (0, max_y), radius)
 space.add(boarders, top, right, bottom, left)
 
+def handle_bullet_tank_collision(arbiter: pymunk.Arbiter, space: pymunk.Space, data: dict):
+    bullet, tank = arbiter.shapes
+    bullet: gameobjects.Bullet = bullet.parent
+    tank: gameobjects.Tank = tank.parent
+    tank.respawn()
+    bullet.remove(space)
+    if bullet in game_objects_list:
+        game_objects_list.remove(bullet)
+
+    return False
+
+handler = space.add_collision_handler(gameobjects.Bullet.COLLISION_TYPE, gameobjects.Tank.COLLISION_TYPE)
+handler.pre_solve = handle_bullet_tank_collision
+
 # ----- Main Loop -----#
 
 # -- Control whether the game run
@@ -105,6 +119,8 @@ while running:
             elif event.key == K_RIGHT:
                 tanks_list[0].turn_right()
                 stop_turning_timer = 0.2
+            elif event.key == K_SPACE:
+                game_objects_list.append(tanks_list[0].shoot(space))
         if event.type == KEYUP:
             if event.key == K_UP or event.key == K_DOWN:
                 tanks_list[0].stop_moving()

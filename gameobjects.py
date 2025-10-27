@@ -19,7 +19,7 @@ class GameObject:
         - screen_position    that will return the position of the object on the screen
         - screen_orientation that will return how much the object is rotated on the screen (in degrees). """
 
-    def __init__(self, sprite):
+    def __init__(self, sprite: pygame.Surface):
         self.sprite = sprite
 
     def update(self):
@@ -56,7 +56,7 @@ class GamePhysicsObject(GameObject):
         interaction of the objects.
     """
 
-    def __init__(self, x, y, orientation, sprite, space, movable):
+    def __init__(self, x, y, orientation, sprite, space, movable, collision_type = 0):
         """ Takes as parameters the starting coordinate (x,y), the orientation, the sprite (aka the image
             representing the object), the physic engine object (space) and whether the object can be
             moved (movable).
@@ -86,11 +86,12 @@ class GamePhysicsObject(GameObject):
             self.body = pymunk.Body(body_type=pymunk.Body.STATIC)  # Create a non movable (static) object
 
         self.body.position = x, y
-        self.body.angle = math.radians(orientation)       # orientation is provided in degress, but pymunk expects radians.
+        self.body.angle = math.radians(orientation)       # orientation is provided in degres, but pymunk expects radians.
         self.shape = pymunk.Poly(self.body, points)  # Create a polygon shape using the corner of the rectangle
         self.shape.parent = self
+        self.shape.collision_type = collision_type
 
-        # Set some value for friction and elasticity, which defines interraction in case of a colision
+        # Set some value for friction and elasticity, which defines interaction in case of a collision
         # self.shape.friction = 0.5
         # self.shape.elasticity = 0.1
 
@@ -115,6 +116,11 @@ class GamePhysicsObject(GameObject):
             ps += [ps[0]]
             pygame.draw.lines(screen, pygame.color.THECOLORS["red"], False, ps, 1)
 
+    def remove(self, space: pymunk.Space):
+        for shape in self.body.shapes:
+            space.remove(shape)
+        space.remove(self.body)
+
 
 def clamp(min_max, value):
     """ Convenient helper function to bound a value to a specific interval. """
@@ -124,9 +130,10 @@ def clamp(min_max, value):
 class Bullet(GamePhysicsObject):
     """Beautiful bullet class."""
     SPEED = 10
+    COLLISION_TYPE = 1
 
     def __init__(self, x, y, orientation, space):
-        super().__init__(x, y, orientation, images.bullet, space, True)
+        super().__init__(x, y, orientation, images.bullet, space, True, self.COLLISION_TYPE)
 
     def update(self):
         self.body.velocity = pymunk.Vec2d(0, self.SPEED).rotated(self.body.angle)
@@ -135,14 +142,16 @@ class Bullet(GamePhysicsObject):
 class Tank(GamePhysicsObject):
     """ Extends GamePhysicsObject and handles aspects which are specific to our tanks. """
 
-    # Constant values for the tank, acessed like: Tank.ACCELERATION
+    # Constant values for the tank, accessed like: Tank.ACCELERATION
     # You can add more constants here if needed later
     ACCELERATION = 0.4
     NORMAL_MAX_SPEED = 2.0
     FLAG_MAX_SPEED = NORMAL_MAX_SPEED * 0.5
+    
+    COLLISION_TYPE = 2
 
     def __init__(self, x, y, orientation, sprite, space):
-        super().__init__(x, y, orientation, sprite, space, True)
+        super().__init__(x, y, orientation, sprite, space, True, self.COLLISION_TYPE)
         # Define variable used to apply motion to the tanks
         self.acceleration = 0  # 1 forward, 0 for stand still, -1 for backwards
         self.rotation = 0  # 1 clockwise, 0 for no rotation, -1 counter clockwise
@@ -223,15 +232,22 @@ class Tank(GamePhysicsObject):
 
     def shoot(self, space: pymunk.Space):
         """ Call this function to shoot a missile (current implementation does nothing ! you need to implement it yourself) """
-        return Bullet(self.body.position.x, self.body.position.y, self.body.angle * 360 / math.tau, space)
+        scalar = self.sprite.get_height() / images.TILE_SIZE
+        pos = self.body.position + self.body.rotation_vector.rotated_degrees(90) * scalar
+        return Bullet(*pos, self.body.angle * 360 / math.tau, space)
+
+    def respawn(self):
+        self.body.position = self.start_position
 
 
 class Box(GamePhysicsObject):
     """ This class extends the GamePhysicsObject to handle box objects. """
 
-    def __init__(self, x, y, sprite, movable, space, destructable):
+    WOOD_BOX_COLLISION_TYPE = 3
+
+    def __init__(self, x, y, sprite, movable, space, destructable, collision_type = 0):
         """ It takes as arguments the coordinate of the starting position of the box (x,y) and the box model (boxmodel). """
-        super().__init__(x, y, 0, sprite, space, movable)
+        super().__init__(x, y, 0, sprite, space, movable, collision_type)
         self.destructable = destructable
 
 
@@ -243,11 +259,11 @@ def get_box_with_type(x, y, type, space):
         Other values of type are invalid
     """
     (x, y) = (x + 0.5, y + 0.5)  # Offsets the coordinate to the center of the tile
-    if type == 1:  # Creates a non-movable non-destructable rockbox
+    if type == 1:  # Creates a non-movable non-destructible rockbox
         return Box(x, y, images.rockbox, False, space, False)
-    if type == 2:  # Creates a movable destructable woodbox
-        return Box(x, y, images.woodbox, True, space, True)
-    if type == 3:  # Creates a movable non-destructable metalbox
+    if type == 2:  # Creates a movable destructible woodbox
+        return Box(x, y, images.woodbox, True, space, True, Box.WOOD_BOX_COLLISION_TYPE)
+    if type == 3:  # Creates a movable non-destructible metalbox
         return Box(x, y, images.metalbox, True, space, False)
 
 
