@@ -33,7 +33,7 @@ FRAMERATE = 50
 #   Define the current level
 current_map = maps.map0
 #   List of all game objects
-game_objects_list = []
+game_objects_list: list[gameobjects.GameObject] = []
 tanks_list: list[gameobjects.Tank] = []
 
 # -- Resize the screen to the size of the current level
@@ -90,6 +90,34 @@ def handle_bullet_tank_collision(arbiter: pymunk.Arbiter, space: pymunk.Space, d
 handler = space.add_collision_handler(gameobjects.Bullet.COLLISION_TYPE, gameobjects.Tank.COLLISION_TYPE)
 handler.pre_solve = handle_bullet_tank_collision
 
+def handle_bullet_wood_box_collision(arbiter: pymunk.Arbiter, space: pymunk.Space, data: dict):
+    bullet, box = arbiter.shapes
+    bullet: gameobjects.Bullet = bullet.parent
+    box: gameobjects.Box = box.parent
+    box.remove(space)
+    if box in game_objects_list:
+        game_objects_list.remove(box)
+    bullet.remove(space)
+    if bullet in game_objects_list:
+        game_objects_list.remove(bullet)
+
+    return False
+
+handler = space.add_collision_handler(gameobjects.Bullet.COLLISION_TYPE, gameobjects.Box.WOOD_BOX_COLLISION_TYPE)
+handler.pre_solve = handle_bullet_wood_box_collision
+
+def handle_bullet_other_collision(arbiter: pymunk.Arbiter, space: pymunk.Space, data: dict):
+    bullet, _ = arbiter.shapes
+    bullet: gameobjects.Bullet = bullet.parent
+    bullet.remove(space)
+    if bullet in game_objects_list:
+        game_objects_list.remove(bullet)
+
+    return False
+
+handler = space.add_collision_handler(gameobjects.Bullet.COLLISION_TYPE, 0)
+handler.pre_solve = handle_bullet_other_collision
+
 # ----- Main Loop -----#
 
 # -- Control whether the game run
@@ -98,8 +126,13 @@ running = True
 skip_update = 0
 stop_moving_timer = 0
 stop_turning_timer = 0
+update_dt = 0
 
 while running:
+    #   Control the game framerate
+    dt = clock.tick(FRAMERATE) / 1000
+    update_dt += dt
+
     # -- Handle the events
     for event in pygame.event.get():
         # Check if we receive a QUIT event (for instance, if the user press the
@@ -120,7 +153,9 @@ while running:
                 tanks_list[0].turn_right()
                 stop_turning_timer = 0.2
             elif event.key == K_SPACE:
-                game_objects_list.append(tanks_list[0].shoot(space))
+                bullet = tanks_list[0].shoot(space)
+                if bullet is not None:
+                    game_objects_list.append(bullet)
         if event.type == KEYUP:
             if event.key == K_UP or event.key == K_DOWN:
                 tanks_list[0].stop_moving()
@@ -132,17 +167,18 @@ while running:
         # Loop over all the game objects and update their speed in function of their
         # acceleration.
         for obj in game_objects_list:
-            obj.update()
+            obj.update(update_dt)
+        update_dt = 0
         skip_update = 2
     else:
         skip_update -= 1
 
     #   Check collisions and update the objects position
-    space.step(1 / FRAMERATE)
+    space.step(dt)
 
     #   Update object that depends on an other object position (for instance a flag)
     for obj in game_objects_list:
-        obj.post_update()
+        obj.post_update(dt)
 
     # -- Update Display
 
@@ -158,6 +194,3 @@ while running:
 
     #   Redisplay the entire screen (see double buffer technique)
     pygame.display.flip()
-
-    #   Control the game framerate
-    clock.tick(FRAMERATE)

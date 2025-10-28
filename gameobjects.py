@@ -22,12 +22,12 @@ class GameObject:
     def __init__(self, sprite: pygame.Surface):
         self.sprite = sprite
 
-    def update(self):
+    def update(self, dt: float):
         """ Placeholder, supposed to be implemented in a subclass.
             Should update the current state (after a tick) of the object."""
         return
 
-    def post_update(self):
+    def post_update(self, dt: float):
         """ Should be implemented in a subclass. Make updates that depend on
             other objects than itself."""
         return
@@ -135,7 +135,7 @@ class Bullet(GamePhysicsObject):
     def __init__(self, x, y, orientation, space):
         super().__init__(x, y, orientation, images.bullet, space, True, self.COLLISION_TYPE)
 
-    def update(self):
+    def update(self, dt: float):
         self.body.velocity = pymunk.Vec2d(0, self.SPEED).rotated(self.body.angle)
 
 
@@ -149,6 +149,13 @@ class Tank(GamePhysicsObject):
     FLAG_MAX_SPEED = NORMAL_MAX_SPEED * 0.5
     
     COLLISION_TYPE = 2
+
+    acceleration: int
+    rotation: int
+    flag: 'Flag | None'
+    max_speed: float
+    start_position: pymunk.Vec2d
+    shoot_cooldown: float = 0
 
     def __init__(self, x, y, orientation, sprite, space):
         super().__init__(x, y, orientation, sprite, space, True, self.COLLISION_TYPE)
@@ -186,7 +193,7 @@ class Tank(GamePhysicsObject):
         self.rotation = 0
         self.body.angular_velocity = 0
 
-    def update(self):
+    def update(self, dt: float):
         """ A function to update the objects coordinates. Gets called at every tick of the game. """
 
         # Creates a vector in the direction we want accelerate / decelerate
@@ -202,7 +209,9 @@ class Tank(GamePhysicsObject):
         self.body.angular_velocity += self.rotation * self.ACCELERATION
         self.body.angular_velocity = clamp(self.max_speed, self.body.angular_velocity)
 
-    def post_update(self):
+        self.shoot_cooldown -= dt
+
+    def post_update(self, dt: float):
         # If the tank carries the flag, then update the positon of the flag
         if (self.flag is not None):
             self.flag.x = self.body.position[0]
@@ -231,7 +240,14 @@ class Tank(GamePhysicsObject):
         return self.flag is not None and (self.start_position - self.body.position).length < 0.2
 
     def shoot(self, space: pymunk.Space):
-        """ Call this function to shoot a missile (current implementation does nothing ! you need to implement it yourself) """
+        """ Attempts to shoot a missile.
+            If tank has shot a missile recently, no missile is fired.
+            If a missile is fired it is returned otherwise None is returned.
+        """
+        if self.shoot_cooldown > 0:
+            return None
+
+        self.shoot_cooldown = 1
         scalar = self.sprite.get_height() / images.TILE_SIZE
         pos = self.body.position + self.body.rotation_vector.rotated_degrees(90) * scalar
         return Bullet(*pos, self.body.angle * 360 / math.tau, space)
