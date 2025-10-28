@@ -212,7 +212,7 @@ class Tank(GamePhysicsObject):
         self.shoot_cooldown -= dt
 
     def post_update(self, dt: float):
-        # If the tank carries the flag, then update the positon of the flag
+        # If the tank carries the flag, then update the position of the flag
         if (self.flag is not None):
             self.flag.x = self.body.position[0]
             self.flag.y = self.body.position[1]
@@ -254,6 +254,9 @@ class Tank(GamePhysicsObject):
 
     def respawn(self):
         self.body.position = self.start_position
+        if self.flag is not None:
+            self.flag.is_on_tank = False
+            self.flag = None
 
 
 class Box(GamePhysicsObject):

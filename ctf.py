@@ -156,6 +156,11 @@ while running:
                 bullet = tanks_list[0].shoot(space)
                 if bullet is not None:
                     game_objects_list.append(bullet)
+            elif event.key == K_KP_ENTER:
+                bullet = tanks_list[1].shoot(space)
+                if bullet is not None:
+                    game_objects_list.append(bullet)
+
         if event.type == KEYUP:
             if event.key == K_UP or event.key == K_DOWN:
                 tanks_list[0].stop_moving()
