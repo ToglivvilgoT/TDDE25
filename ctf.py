@@ -3,199 +3,90 @@
 import pygame
 from pygame.locals import *
 from pygame.color import *
-import pymunk
 
-# ----- Initialisation ----- #
-
-# -- Initialise the display
 pygame.init()
 pygame.display.set_mode()
 
-# -- Initialise the clock
-clock = pygame.time.Clock()
-
-# -- Initialise the physics engine
-space = pymunk.Space()
-space.gravity = (0.0, 0.0)
-space.damping = 0.1  # Adds friction to the ground for all objects
-
-# -- Import from the ctf framework
-# The framework needs to be imported after initialisation of pygame
-import ai
-import images
-import gameobjects
+from gameobjects import GameObject, Tank
 import maps
+import game_setup
 
-# -- Constants
-FRAMERATE = 50
 
-# -- Variables
-#   Define the current level
-current_map = maps.map0
-#   List of all game objects
-game_objects_list: list[gameobjects.GameObject] = []
-tanks_list: list[gameobjects.Tank] = []
+def main():
+    FRAMERATE = 50
+    running = True
 
-# -- Resize the screen to the size of the current level
-screen = pygame.display.set_mode(current_map.rect().size)
+    skip_update = 0
+    update_dt = 0
+    clock = pygame.time.Clock()
 
-background = pygame.Surface(screen.get_size())
+    current_map = maps.map0
+    space = game_setup.space_set_up()
+    game_objects, tanks_list, flag = game_setup.create_game_objects(current_map, space)
 
-for y in range(current_map.height):
-    for x in range(current_map.width):
-        background.blit(images.grass, (x * images.TILE_SIZE, y * images.TILE_SIZE))
+    screen = pygame.display.set_mode(current_map.rect().size)
 
-for (x, y, _), image in zip(current_map.start_positions, images.bases):
-    base = gameobjects.GameVisibleObject(x, y, image)
-    game_objects_list.append(base)
+    background = game_setup.get_background(current_map.rect().size)
 
-for y in range(current_map.height):
-    for x in range(current_map.width):
-        box_type: gameobjects.Box = current_map.boxAt(x, y)
-        if box_type != 0:
-            box = gameobjects.get_box_with_type(x, y, box_type, space)
-            game_objects_list.append(box)
+    game_setup.add_collision_handlers(game_objects, space)
+    game_setup.create_borders(current_map.width, current_map.height, space)
 
-for (x, y, orientation), image in zip(current_map.start_positions, images.tanks):
-    tank = gameobjects.Tank(x, y, orientation, image, space)
-    tanks_list.append(tank)
-    game_objects_list.append(tank)
+    while running:
+        dt = clock.tick(FRAMERATE) / 1000
+        update_dt += dt
 
-flag = gameobjects.Flag(*current_map.flag_position)
-game_objects_list.append(flag)
+        for event in pygame.event.get():
+            if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
+                running = False
+            if event.type == KEYDOWN:
+                if event.key == K_UP:
+                    tanks_list[0].accelerate()
+                elif event.key == K_DOWN:
+                    tanks_list[0].decelerate()
+                elif event.key == K_LEFT:
+                    tanks_list[0].turn_left()
+                elif event.key == K_RIGHT:
+                    tanks_list[0].turn_right()
+                elif event.key == K_SPACE:
+                    bullet = tanks_list[0].shoot(space)
+                    if bullet is not None:
+                        game_objects.append(bullet)
+                elif event.key == K_KP_ENTER:
+                    bullet = tanks_list[1].shoot(space)
+                    if bullet is not None:
+                        game_objects.append(bullet)
 
-boarders = pymunk.Body(body_type=pymunk.Body.STATIC)
-min_x = 0
-max_x = current_map.width
-min_y = 0
-max_y = current_map.height
-radius = 0.01
-top = pymunk.Segment(boarders, (0, 0), (max_x, 0), radius)
-right = pymunk.Segment(boarders, (max_x, 0), (max_x, max_y), radius)
-bottom = pymunk.Segment(boarders, (0, max_y), (max_x, max_y), radius)
-left = pymunk.Segment(boarders, (0, 0), (0, max_y), radius)
-space.add(boarders, top, right, bottom, left)
+            if event.type == KEYUP:
+                if event.key == K_UP or event.key == K_DOWN:
+                    tanks_list[0].stop_moving()
+                if event.key == K_LEFT or event.key == K_RIGHT:
+                    tanks_list[0].stop_turning()
 
-def handle_bullet_tank_collision(arbiter: pymunk.Arbiter, space: pymunk.Space, data: dict):
-    bullet, tank = arbiter.shapes
-    bullet: gameobjects.Bullet = bullet.parent
-    tank: gameobjects.Tank = tank.parent
-    tank.respawn()
-    bullet.remove(space)
-    if bullet in game_objects_list:
-        game_objects_list.remove(bullet)
+        if skip_update == 0:
+            for obj in game_objects:
+                obj.update(update_dt)
+            update_dt = 0
+            skip_update = 2
+        else:
+            skip_update -= 1
 
-    return False
+        space.step(dt)
 
-handler = space.add_collision_handler(gameobjects.Bullet.COLLISION_TYPE, gameobjects.Tank.COLLISION_TYPE)
-handler.pre_solve = handle_bullet_tank_collision
+        for obj in game_objects:
+            obj.post_update(dt)
 
-def handle_bullet_wood_box_collision(arbiter: pymunk.Arbiter, space: pymunk.Space, data: dict):
-    bullet, box = arbiter.shapes
-    bullet: gameobjects.Bullet = bullet.parent
-    box: gameobjects.Box = box.parent
-    box.remove(space)
-    if box in game_objects_list:
-        game_objects_list.remove(box)
-    bullet.remove(space)
-    if bullet in game_objects_list:
-        game_objects_list.remove(bullet)
+        screen.blit(background, (0, 0))
 
-    return False
+        for object in game_objects:
+            object.update_screen(screen)
 
-handler = space.add_collision_handler(gameobjects.Bullet.COLLISION_TYPE, gameobjects.Box.WOOD_BOX_COLLISION_TYPE)
-handler.pre_solve = handle_bullet_wood_box_collision
+        for tank in tanks_list:
+            tank.try_grab_flag(flag)
+            if tank.has_won():
+                running = False
 
-def handle_bullet_other_collision(arbiter: pymunk.Arbiter, space: pymunk.Space, data: dict):
-    bullet, _ = arbiter.shapes
-    bullet: gameobjects.Bullet = bullet.parent
-    bullet.remove(space)
-    if bullet in game_objects_list:
-        game_objects_list.remove(bullet)
+        pygame.display.flip()
 
-    return False
 
-handler = space.add_collision_handler(gameobjects.Bullet.COLLISION_TYPE, 0)
-handler.pre_solve = handle_bullet_other_collision
-
-# ----- Main Loop -----#
-
-# -- Control whether the game run
-running = True
-
-skip_update = 0
-stop_moving_timer = 0
-stop_turning_timer = 0
-update_dt = 0
-
-while running:
-    #   Control the game framerate
-    dt = clock.tick(FRAMERATE) / 1000
-    update_dt += dt
-
-    # -- Handle the events
-    for event in pygame.event.get():
-        # Check if we receive a QUIT event (for instance, if the user press the
-        # close button of the window) or if the user press the escape key.
-        if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
-            running = False
-        if event.type == KEYDOWN:
-            if event.key == K_UP:
-                tanks_list[0].accelerate()
-                stop_moving_timer = 0.2
-            elif event.key == K_DOWN:
-                tanks_list[0].decelerate()
-                stop_moving_timer = 0.2
-            elif event.key == K_LEFT:
-                tanks_list[0].turn_left()
-                stop_turning_timer = 0.2
-            elif event.key == K_RIGHT:
-                tanks_list[0].turn_right()
-                stop_turning_timer = 0.2
-            elif event.key == K_SPACE:
-                bullet = tanks_list[0].shoot(space)
-                if bullet is not None:
-                    game_objects_list.append(bullet)
-            elif event.key == K_KP_ENTER:
-                bullet = tanks_list[1].shoot(space)
-                if bullet is not None:
-                    game_objects_list.append(bullet)
-
-        if event.type == KEYUP:
-            if event.key == K_UP or event.key == K_DOWN:
-                tanks_list[0].stop_moving()
-            if event.key == K_LEFT or event.key == K_RIGHT:
-                tanks_list[0].stop_turning()
-    
-    # -- Update physics
-    if skip_update == 0:
-        # Loop over all the game objects and update their speed in function of their
-        # acceleration.
-        for obj in game_objects_list:
-            obj.update(update_dt)
-        update_dt = 0
-        skip_update = 2
-    else:
-        skip_update -= 1
-
-    #   Check collisions and update the objects position
-    space.step(dt)
-
-    #   Update object that depends on an other object position (for instance a flag)
-    for obj in game_objects_list:
-        obj.post_update(dt)
-
-    # -- Update Display
-
-    screen.blit(background, (0, 0))
-
-    for object in game_objects_list:
-        object.update_screen(screen)
-
-    for tank in tanks_list:
-        tank.try_grab_flag(flag)
-        if tank.has_won():
-            running = False
-
-    #   Redisplay the entire screen (see double buffer technique)
-    pygame.display.flip()
+if __name__ == '__main__':
+    main()
