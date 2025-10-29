@@ -3,13 +3,76 @@
 import pygame
 from pygame.locals import *
 from pygame.color import *
+from pygame import Surface
+from pymunk import Space
 
 pygame.init()
 pygame.display.set_mode()
 
-from gameobjects import GameObject, Tank
 import maps
 import game_setup
+from gameobjects import Tank, GameObject, Flag
+
+
+def handle_key_down_event(event: pygame.event.Event, player: Tank, space: Space, game_objects: list[GameObject]):
+    if event.key == K_UP:
+        player.accelerate()
+    elif event.key == K_DOWN:
+        player.decelerate()
+    elif event.key == K_LEFT:
+        player.turn_left()
+    elif event.key == K_RIGHT:
+        player.turn_right()
+    elif event.key == K_SPACE:
+        bullet = player.shoot(space)
+        if bullet is not None:
+            game_objects.append(bullet)
+
+
+def handle_key_up_event(event: pygame.event.Event, player: Tank):
+    if event.key == K_UP or event.key == K_DOWN:
+        player.stop_moving()
+    if event.key == K_LEFT or event.key == K_RIGHT:
+        player.stop_turning()
+
+
+def update(game_objects: list[GameObject], space: Space, tanks: list[Tank], flag: Flag, do_update: bool, dt: float, update_dt: float):
+    """ Runs one iteration of the update loop for the game.
+        Returns True if game should quit, false other wise.
+    """
+    for event in pygame.event.get():
+        if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
+            return True
+        if event.type == KEYDOWN:
+            handle_key_down_event(event, tanks[0], space, game_objects)
+
+        if event.type == KEYUP:
+            handle_key_up_event(event, tanks[0])
+
+    if do_update:
+        for obj in game_objects:
+            obj.update(update_dt)
+
+    space.step(dt)
+
+    for obj in game_objects:
+        obj.post_update(dt)
+
+    for tank in tanks:
+        tank.try_grab_flag(flag)
+        if tank.has_won():
+            return True
+
+    return False
+
+
+def draw(screen: Surface, background: Surface, game_objects: list[GameObject]):
+    screen.blit(background, (0, 0))
+
+    for object in game_objects:
+        object.update_screen(screen)
+
+    pygame.display.flip()
 
 
 def main():
@@ -22,7 +85,7 @@ def main():
 
     current_map = maps.map0
     space = game_setup.space_set_up()
-    game_objects, tanks_list, flag = game_setup.create_game_objects(current_map, space)
+    game_objects, tanks, flag = game_setup.create_game_objects(current_map, space)
 
     screen = pygame.display.set_mode(current_map.rect().size)
 
@@ -35,57 +98,17 @@ def main():
         dt = clock.tick(FRAMERATE) / 1000
         update_dt += dt
 
-        for event in pygame.event.get():
-            if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
-                running = False
-            if event.type == KEYDOWN:
-                if event.key == K_UP:
-                    tanks_list[0].accelerate()
-                elif event.key == K_DOWN:
-                    tanks_list[0].decelerate()
-                elif event.key == K_LEFT:
-                    tanks_list[0].turn_left()
-                elif event.key == K_RIGHT:
-                    tanks_list[0].turn_right()
-                elif event.key == K_SPACE:
-                    bullet = tanks_list[0].shoot(space)
-                    if bullet is not None:
-                        game_objects.append(bullet)
-                elif event.key == K_KP_ENTER:
-                    bullet = tanks_list[1].shoot(space)
-                    if bullet is not None:
-                        game_objects.append(bullet)
+        should_quit = update(game_objects, space, tanks, flag, skip_update <= 0, dt, update_dt)
+        if should_quit:
+            running = False
 
-            if event.type == KEYUP:
-                if event.key == K_UP or event.key == K_DOWN:
-                    tanks_list[0].stop_moving()
-                if event.key == K_LEFT or event.key == K_RIGHT:
-                    tanks_list[0].stop_turning()
-
-        if skip_update == 0:
-            for obj in game_objects:
-                obj.update(update_dt)
-            update_dt = 0
+        if skip_update <= 0:
             skip_update = 2
+            update_dt = 0
         else:
             skip_update -= 1
 
-        space.step(dt)
-
-        for obj in game_objects:
-            obj.post_update(dt)
-
-        screen.blit(background, (0, 0))
-
-        for object in game_objects:
-            object.update_screen(screen)
-
-        for tank in tanks_list:
-            tank.try_grab_flag(flag)
-            if tank.has_won():
-                running = False
-
-        pygame.display.flip()
+        draw(screen, background, game_objects)
 
 
 if __name__ == '__main__':
