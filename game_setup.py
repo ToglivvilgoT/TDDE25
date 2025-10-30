@@ -4,6 +4,7 @@ from pymunk import Space, Arbiter, Body, Segment
 
 import images
 from gameobjects import GameObject, GameVisibleObject, Box, Tank, Flag, Bullet, get_box_with_type
+from ai import Ai
 from maps import Map
 
 
@@ -49,25 +50,36 @@ def create_boxes(map: Map, space: Space) -> list[Box]:
     return boxes
 
 
-def create_tanks(positions: list[tuple[float, float, float]], space: Space) -> list[Tank]:
-    """Creates and returns a list of tanks."""
+def create_tanks(
+        positions: list[tuple[float, float, float]],
+        space: Space,
+        player_amount: int,
+        game_objects: list[GameObject],
+        current_map: Map,
+        ) -> tuple[list[Tank], list[Ai]]:
+    """Creates and returns a list of tanks and AI:s."""
     tanks = []
+    ais = []
     for (x, y, orientation), image in zip(positions, images.tanks):
         tank = Tank(x, y, orientation, image, space)
         tanks.append(tank)
+        if player_amount <= 0:
+            ais.append(Ai(tank, game_objects, tanks, space, current_map))
+        else:
+            player_amount -= 1
 
-    return tanks
+    return tanks, ais
 
 
-def create_game_objects(map: Map, space: Space) -> tuple[list[GameObject], list[Tank], Flag]:
+def create_game_objects(map: Map, space: Space, player_amount: int) -> tuple[list[GameObject], list[Tank], Flag, list[Ai]]:
     """Creates all game objects needed for the game."""
     game_objects = create_bases(map.start_positions)
     game_objects.extend(create_boxes(map, space))
-    tanks = create_tanks(map.start_positions, space)
+    tanks, ais = create_tanks(map.start_positions, space, player_amount, game_objects, map)
     game_objects.extend(tanks)
     flag = Flag(*map.flag_position)
     game_objects.append(flag)
-    return game_objects, tanks, flag
+    return game_objects, tanks, flag, ais
 
 
 def create_borders(width: float, height: float, space: Space):

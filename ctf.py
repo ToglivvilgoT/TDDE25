@@ -12,6 +12,7 @@ pygame.display.set_mode()
 import maps
 import game_setup
 from gameobjects import Tank, GameObject, Flag
+from ai import Ai
 
 
 def handle_key_down_event(event: pygame.event.Event, player: Tank, space: Space, game_objects: list[GameObject]):
@@ -36,7 +37,16 @@ def handle_key_up_event(event: pygame.event.Event, player: Tank):
         player.stop_turning()
 
 
-def update(game_objects: list[GameObject], space: Space, tanks: list[Tank], flag: Flag, do_update: bool, dt: float, update_dt: float):
+def update(
+        game_objects: list[GameObject],
+        space: Space,
+        tanks: list[Tank],
+        flag: Flag,
+        ais: list[Ai],
+        do_update: bool,
+        dt: float,
+        update_dt: float,
+        ):
     """ Runs one iteration of the update loop for the game.
         Returns True if game should quit, false other wise.
     """
@@ -48,6 +58,9 @@ def update(game_objects: list[GameObject], space: Space, tanks: list[Tank], flag
 
         if event.type == KEYUP:
             handle_key_up_event(event, tanks[0])
+
+    for ai in ais:
+        ai.decide()
 
     if do_update:
         for obj in game_objects:
@@ -77,18 +90,20 @@ def draw(screen: Surface, background: Surface, game_objects: list[GameObject]):
 
 def main():
     FRAMERATE = 50
-    running = True
+    PLAYER_AMOUNT = 1
 
+    # variables
+    running = True
     skip_update = 0
     update_dt = 0
     clock = pygame.time.Clock()
-
     current_map = maps.map0
-    space = game_setup.space_set_up()
-    game_objects, tanks, flag = game_setup.create_game_objects(current_map, space)
 
+    # setup
     screen = pygame.display.set_mode(current_map.rect().size)
 
+    space = game_setup.space_set_up()
+    game_objects, tanks, flag, ais = game_setup.create_game_objects(current_map, space, PLAYER_AMOUNT)
     background = game_setup.get_background(current_map.rect().size)
 
     game_setup.add_collision_handlers(game_objects, space)
@@ -98,7 +113,7 @@ def main():
         dt = clock.tick(FRAMERATE) / 1000
         update_dt += dt
 
-        should_quit = update(game_objects, space, tanks, flag, skip_update <= 0, dt, update_dt)
+        should_quit = update(game_objects, space, tanks, flag, ais, skip_update <= 0, dt, update_dt)
         if should_quit:
             running = False
 
