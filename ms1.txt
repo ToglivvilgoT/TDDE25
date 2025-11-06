@@ -1,0 +1,16 @@
+vad gör: for event in pygame.event.get():
+vad gör obj.update(), plymorphism
+    tank är en gameObj, vad gör den i update()?
+    box -||- 
+vad gör skip_update, vad är det bra för?
+
+var finns maps?
+vad innehåller dem?
+hur skapar man en ny map?
+
+var finns bilderna?
+hur skapar man en ny bild?
+
+Vad är GameObject?
+Vad innebär klass i parantes: class GamePhysicsObject(GameObject):
+gameObject.update_screen() kallar på self.screen_position(), vart definieras den?
