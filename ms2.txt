@@ -1,0 +1,12 @@
+Förklara background-genereringen
+    varför multiplicera med TILE_SIZE?
+
+Förklara generering av lådor
+    Lägger till i game_objects_list, varför är det viktigt?
+
+Förklara generering av tanks
+    Varför måste de ligga i tanks_list? Räcker inte game_objects_list?
+
+Hur fungerar movement?
+    Hur skulle ni göra om flera spelare ska röra på sig?
+    Bugg?
