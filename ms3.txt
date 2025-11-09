@@ -1,0 +1,14 @@
+Förklara hur ni har valt att dela upp koden
+    Vad ligger inte i funktioner, varför?
+    Vad är en bra längd på en funktion?
+
+Hur gjorde ni boarders?
+
+Hur hanterar ni shooting?
+    Hur får ni bullets att röra sig utan friktion?
+    Hur löste ni delay på skotten så man inte kan skjuta konstant?
+
+Hur hanterar ni collisions?
+    Hur tar man bort ett objekt?
+        (både från space (med shapes och body) och game_objects_list)
+    Hur respawnar tanks?
