@@ -1,0 +1,9 @@
+move_cycle_gen()
+    vad är en generator?
+    vad gör yield
+
+    turning
+    driving
+
+maybe_shoot()
+    pew pew

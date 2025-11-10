@@ -7,7 +7,7 @@ from collections import defaultdict, deque
 import pymunk
 from pymunk import Vec2d, Space
 import gameobjects
-from gameobjects import Tank, GameObject
+from gameobjects import Tank, GameObject, Box
 from maps import Map
 
 # NOTE: use only 'map0' during development!
@@ -56,13 +56,28 @@ class Ai:
     def decide(self):
         """ Main decision function that gets called on every tick of the game.
         """
+        bullet = self.maybe_shoot()
+        if bullet is not None:
+            self.game_objects_list.append(bullet)
+
         next(self.move_cycle)
 
     def maybe_shoot(self):
         """ Makes a raycast query in front of the tank. If another tank
             or a wooden box is found, then we shoot.
         """
-        pass  # To be implemented
+        direction: Vec2d = self.tank.body.rotation_vector.rotated(math.pi / 2)
+        start_offset = direction.scale_to_length(0.5)
+        end_offset = direction.scale_to_length(self.max_x + self.max_y)
+        start = self.tank.body.position + start_offset
+        end = self.tank.body.position + end_offset
+        hit = self.space.segment_query_first(start, end, 0, pymunk.ShapeFilter())
+        if hit is not None and hasattr(hit, 'shape') and hasattr(hit.shape, 'parent'):
+            hit_obj = hit.shape.parent
+            is_tank = isinstance(hit_obj, Tank)
+            is_wood_box = isinstance(hit_obj, Box) and hit.shape.parent.destructable
+            if is_tank or is_wood_box:
+                return self.tank.shoot(self.space)
 
     def move_cycle_gen(self):
         """ A generator that iteratively goes through all the required steps

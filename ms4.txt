@@ -1,0 +1,9 @@
+get_tile_neighbors()
+
+filter_grid_neighbors()
+
+BFS
+    hur fungerar algoritmen?
+    Ger den alltid den kortaste vägen?
+    Ger den alltid den bästa vägen?
+    deque, varför inte list?
