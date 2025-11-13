@@ -1,5 +1,6 @@
 """ Main file for the game.
 """
+import argparse
 import pygame
 from pygame.locals import *
 from pygame.color import *
@@ -15,26 +16,50 @@ from gameobjects import Tank, GameObject, Flag
 from ai import Ai
 
 
-def handle_key_down_event(event: pygame.event.Event, player: Tank, space: Space, game_objects: list[GameObject]):
-    if event.key == K_UP:
-        player.accelerate()
-    elif event.key == K_DOWN:
-        player.decelerate()
-    elif event.key == K_LEFT:
-        player.turn_left()
-    elif event.key == K_RIGHT:
-        player.turn_right()
-    elif event.key == K_SPACE:
-        bullet = player.shoot(space)
-        if bullet is not None:
-            game_objects.append(bullet)
+def parse_cli_args() -> bool:
+    """Reads cli args and returns True if hot seat multiplayer was chosen, False otherwise."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--singleplayer', action='store_true')
+    parser.add_argument('--hot-multiplayer', action='store_true')
+    args = parser.parse_args()
+    if args.hot_multiplayer:
+        return True
+    else:
+        return False
 
 
-def handle_key_up_event(event: pygame.event.Event, player: Tank):
-    if event.key == K_UP or event.key == K_DOWN:
-        player.stop_moving()
-    if event.key == K_LEFT or event.key == K_RIGHT:
-        player.stop_turning()
+CONTROLS = ({'up': K_UP, 'down': K_DOWN, 'left': K_LEFT, 'right': K_RIGHT, 'shoot': K_RETURN},
+            {'up': K_w, 'down': K_s, 'left': K_a, 'right': K_d, 'shoot': K_SPACE})
+
+
+def handle_key_down_event(event: pygame.event.Event, players: list[Tank], space: Space, game_objects: list[GameObject]):
+    if len(players) > len(CONTROLS):
+        raise ValueError('Too many players where given, dont have enough controls for them all.')
+
+    for player, control in zip(players, CONTROLS):
+        if event.key == control['up']:
+            player.accelerate()
+        elif event.key == control['down']:
+            player.decelerate()
+        elif event.key == control['left']:
+            player.turn_left()
+        elif event.key == control['right']:
+            player.turn_right()
+        elif event.key == control['shoot']:
+            bullet = player.shoot(space)
+            if bullet is not None:
+                game_objects.append(bullet)
+
+
+def handle_key_up_event(event: pygame.event.Event, players: list[Tank]):
+    if len(players) > len(CONTROLS):
+        raise ValueError('Too many players where given, dont have enough controls for them all.')
+
+    for player, control in zip(players, CONTROLS):
+        if event.key == control['up'] or event.key == control['down']:
+            player.stop_moving()
+        if event.key == control['left'] or event.key == control['right']:
+            player.stop_turning()
 
 
 def reset_game(tanks: list[Tank], flag: Flag):
@@ -58,6 +83,7 @@ def update(
         dt: float,
         update_dt: float,
         scores: dict[Tank, int],
+        player_amount: int,
         ):
     """ Runs one iteration of the update loop for the game.
         Returns True if game should quit, false other wise.
@@ -66,10 +92,10 @@ def update(
         if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
             return True
         if event.type == KEYDOWN:
-            handle_key_down_event(event, tanks[0], space, game_objects)
+            handle_key_down_event(event, tanks[:player_amount], space, game_objects)
 
         if event.type == KEYUP:
-            handle_key_up_event(event, tanks[0])
+            handle_key_up_event(event, tanks[:player_amount])
 
     for ai in ais:
         ai.decide()
@@ -104,7 +130,6 @@ def draw(screen: Surface, background: Surface, game_objects: list[GameObject]):
 
 def main():
     FRAMERATE = 50
-    PLAYER_AMOUNT = 1
 
     # variables
     running = True
@@ -114,10 +139,11 @@ def main():
     current_map = maps.map0
 
     # setup
+    player_amount = 2 if parse_cli_args() else 1
     screen = pygame.display.set_mode(current_map.rect().size)
 
     space = game_setup.space_set_up()
-    game_objects, tanks, flag, ais = game_setup.create_game_objects(current_map, space, PLAYER_AMOUNT)
+    game_objects, tanks, flag, ais = game_setup.create_game_objects(current_map, space, player_amount)
     scores = {tank: 0 for tank in tanks}
     background = game_setup.get_background(current_map.rect().size)
 
@@ -128,7 +154,7 @@ def main():
         dt = clock.tick(FRAMERATE) / 1000
         update_dt += dt
 
-        should_quit = update(game_objects, space, tanks, flag, ais, skip_update <= 0, dt, update_dt, scores)
+        should_quit = update(game_objects, space, tanks, flag, ais, skip_update <= 0, dt, update_dt, scores, player_amount)
         if should_quit:
             running = False
 
