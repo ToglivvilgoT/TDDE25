@@ -148,6 +148,7 @@ class Tank(GamePhysicsObject):
     NORMAL_MAX_SPEED = 2.0
     FLAG_MAX_SPEED = NORMAL_MAX_SPEED * 0.5
     MAX_HP = 2
+    RESPAWN_PROTECTION_TIME = 3.0
     
     COLLISION_TYPE = 2
 
@@ -158,6 +159,7 @@ class Tank(GamePhysicsObject):
     start_position: pymunk.Vec2d
     shoot_cooldown: float = 0
     hp = MAX_HP
+    respawn_protection_time = RESPAWN_PROTECTION_TIME
 
     def __init__(self, x, y, orientation, sprite, space):
         super().__init__(x, y, orientation, sprite, space, True, self.COLLISION_TYPE)
@@ -212,6 +214,7 @@ class Tank(GamePhysicsObject):
         self.body.angular_velocity = clamp(self.max_speed, self.body.angular_velocity)
 
         self.shoot_cooldown -= dt
+        self.respawn_protection_time -= dt
 
     def post_update(self, dt: float):
         # If the tank carries the flag, then update the position of the flag
@@ -261,8 +264,12 @@ class Tank(GamePhysicsObject):
             self.flag.is_on_tank = False
             self.flag = None
         self.hp = self.MAX_HP
+        self.respawn_protection_time = self.RESPAWN_PROTECTION_TIME
 
     def get_hit(self):
+        if self.respawn_protection_time > 0:
+            return
+
         self.hp -= 1
         if self.hp == 0:
             self.respawn()
