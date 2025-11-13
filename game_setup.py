@@ -98,7 +98,7 @@ def add_bullet_tank_collision_handler(game_objects: list[GameObject], space: Spa
         bullet, tank = arbiter.shapes
         bullet: Bullet = bullet.parent
         tank: Tank = tank.parent
-        tank.respawn()
+        tank.get_hit()
         bullet.remove(space)
         game_objects = data['game_objects']
         if bullet in game_objects:
@@ -119,9 +119,11 @@ def add_bullet_wood_box_collision_handler(game_objects: list[GameObject], space:
 
         game_objects = data['game_objects']
 
-        box.remove(space)
-        if box in game_objects:
-            game_objects.remove(box)
+        if box.get_hit():
+            box.remove(space)
+            if box in game_objects:
+                game_objects.remove(box)
+
         bullet.remove(space)
         if bullet in game_objects:
             game_objects.remove(bullet)

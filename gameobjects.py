@@ -147,6 +147,7 @@ class Tank(GamePhysicsObject):
     ACCELERATION = 0.4
     NORMAL_MAX_SPEED = 2.0
     FLAG_MAX_SPEED = NORMAL_MAX_SPEED * 0.5
+    MAX_HP = 2
     
     COLLISION_TYPE = 2
 
@@ -156,6 +157,7 @@ class Tank(GamePhysicsObject):
     max_speed: float
     start_position: pymunk.Vec2d
     shoot_cooldown: float = 0
+    hp = MAX_HP
 
     def __init__(self, x, y, orientation, sprite, space):
         super().__init__(x, y, orientation, sprite, space, True, self.COLLISION_TYPE)
@@ -258,17 +260,30 @@ class Tank(GamePhysicsObject):
         if self.flag is not None:
             self.flag.is_on_tank = False
             self.flag = None
+        self.hp = self.MAX_HP
+
+    def get_hit(self):
+        self.hp -= 1
+        if self.hp == 0:
+            self.respawn()
 
 
 class Box(GamePhysicsObject):
     """ This class extends the GamePhysicsObject to handle box objects. """
 
     WOOD_BOX_COLLISION_TYPE = 3
+    MAX_HP = 2
+    hp = MAX_HP
 
-    def __init__(self, x, y, sprite, movable, space, destructable, collision_type = 0):
+    def __init__(self, x, y, sprite, movable, space, destructible, collision_type = 0):
         """ It takes as arguments the coordinate of the starting position of the box (x,y) and the box model (boxmodel). """
         super().__init__(x, y, 0, sprite, space, movable, collision_type)
-        self.destructable = destructable
+        self.destructible = destructible
+
+    def get_hit(self):
+        if self.destructible:
+            self.hp -= 1
+            return self.hp <= 0
 
 
 def get_box_with_type(x, y, type, space):

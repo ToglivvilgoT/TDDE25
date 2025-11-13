@@ -75,7 +75,7 @@ class Ai:
         if hit is not None and hasattr(hit, 'shape') and hasattr(hit.shape, 'parent'):
             hit_obj = hit.shape.parent
             is_tank = isinstance(hit_obj, Tank)
-            is_wood_box = isinstance(hit_obj, Box) and hit.shape.parent.destructable
+            is_wood_box = isinstance(hit_obj, Box) and hit.shape.parent.destructible
             if is_tank or is_wood_box:
                 return self.tank.shoot(self.space)
 
