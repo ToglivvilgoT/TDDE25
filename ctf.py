@@ -37,6 +37,17 @@ def handle_key_up_event(event: pygame.event.Event, player: Tank):
         player.stop_turning()
 
 
+def reset_game(tanks: list[Tank], flag: Flag):
+    for tank in tanks:
+        tank.respawn()
+    flag.respawn()
+
+
+def print_score(scores: dict[Tank, int]):
+    for i, score in enumerate(scores.values()):
+        print(f'Player {i + 1}: {score}')
+
+
 def update(
         game_objects: list[GameObject],
         space: Space,
@@ -46,6 +57,7 @@ def update(
         do_update: bool,
         dt: float,
         update_dt: float,
+        scores: dict[Tank, int],
         ):
     """ Runs one iteration of the update loop for the game.
         Returns True if game should quit, false other wise.
@@ -74,7 +86,9 @@ def update(
     for tank in tanks:
         tank.try_grab_flag(flag)
         if tank.has_won():
-            return True
+            scores[tank] += 1
+            print_score(scores)
+            reset_game(tanks, flag)
 
     return False
 
@@ -104,6 +118,7 @@ def main():
 
     space = game_setup.space_set_up()
     game_objects, tanks, flag, ais = game_setup.create_game_objects(current_map, space, PLAYER_AMOUNT)
+    scores = {tank: 0 for tank in tanks}
     background = game_setup.get_background(current_map.rect().size)
 
     game_setup.add_collision_handlers(game_objects, space)
@@ -113,7 +128,7 @@ def main():
         dt = clock.tick(FRAMERATE) / 1000
         update_dt += dt
 
-        should_quit = update(game_objects, space, tanks, flag, ais, skip_update <= 0, dt, update_dt)
+        should_quit = update(game_objects, space, tanks, flag, ais, skip_update <= 0, dt, update_dt, scores)
         if should_quit:
             running = False
 

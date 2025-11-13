@@ -254,6 +254,7 @@ class Tank(GamePhysicsObject):
 
     def respawn(self):
         self.body.position = self.start_position
+        self.body.velocity = (0, 0)
         if self.flag is not None:
             self.flag.is_on_tank = False
             self.flag = None
@@ -307,7 +308,13 @@ class GameVisibleObject(GameObject):
 
 class Flag(GameVisibleObject):
     """ This class extends GameVisibleObject for representing flags."""
+    is_on_tank: bool
+    start_pos: tuple[int, int]
 
     def __init__(self, x, y):
         self.is_on_tank = False
+        self.start_pos = (x, y)
         super().__init__(x, y, images.flag)
+
+    def respawn(self):
+        self.x, self.y = self.start_pos
