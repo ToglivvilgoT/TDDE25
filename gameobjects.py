@@ -129,14 +129,15 @@ def clamp(min_max, value):
 
 class Bullet(GamePhysicsObject):
     """Beautiful bullet class."""
-    SPEED = 10
     COLLISION_TYPE = 1
+    speed = 10
 
-    def __init__(self, x, y, orientation, space):
+    def __init__(self, x, y, orientation, speed, space):
+        self.speed = speed
         super().__init__(x, y, orientation, images.bullet, space, True, self.COLLISION_TYPE)
 
     def update(self, dt: float):
-        self.body.velocity = pymunk.Vec2d(0, self.SPEED).rotated(self.body.angle)
+        self.body.velocity = pymunk.Vec2d(0, self.speed).rotated(self.body.angle)
 
 
 class Tank(GamePhysicsObject):
@@ -146,7 +147,11 @@ class Tank(GamePhysicsObject):
     # You can add more constants here if needed later
     ACCELERATION = 0.4
     NORMAL_MAX_SPEED = 2.0
+    AI_MAX_SPEED = NORMAL_MAX_SPEED * 50.0
     FLAG_MAX_SPEED = NORMAL_MAX_SPEED * 0.5
+    AI_FLAG_MAX_SPEED = AI_MAX_SPEED * 0.5
+    BULLET_SPEED = 10.0
+    AI_BULLET_SPEED = BULLET_SPEED * 2.0
     MAX_HP = 2
     RESPAWN_PROTECTION_TIME = 3.0
     
@@ -160,16 +165,27 @@ class Tank(GamePhysicsObject):
     shoot_cooldown: float = 0
     hp = MAX_HP
     respawn_protection_time = RESPAWN_PROTECTION_TIME
+    normal_max_speed: float
+    flag_max_speed: float
+    bullet_speed: float
 
-    def __init__(self, x, y, orientation, sprite, space):
+    def __init__(self, x, y, orientation, sprite, space, unfair_ai = False):
         super().__init__(x, y, orientation, sprite, space, True, self.COLLISION_TYPE)
-        # Define variable used to apply motion to the tanks
-        self.acceleration = 0  # 1 forward, 0 for stand still, -1 for backwards
-        self.rotation = 0  # 1 clockwise, 0 for no rotation, -1 counter clockwise
+        self.acceleration = 0
+        self.rotation = 0
 
-        self.flag = None                      # This variable is used to access the flag object, if the current tank is carrying the flag
-        self.max_speed = Tank.NORMAL_MAX_SPEED     # Impose a maximum speed to the tank
-        self.start_position = pymunk.Vec2d(x, y)        # Define the start position, which is also the position where the tank has to return with the flag
+        if unfair_ai:
+            self.normal_max_speed = Tank.AI_MAX_SPEED
+            self.flag_max_speed = Tank.AI_FLAG_MAX_SPEED
+            self.bullet_speed = Tank.AI_BULLET_SPEED
+        else:
+            self.normal_max_speed = Tank.NORMAL_MAX_SPEED
+            self.flag_max_speed = Tank.FLAG_MAX_SPEED
+            self.bullet_speed = Tank.BULLET_SPEED
+
+        self.flag = None 
+        self.max_speed = self.normal_max_speed 
+        self.start_position = pymunk.Vec2d(x, y)
 
     def accelerate(self):
         """ Call this function to make the tank move forward. """
@@ -224,7 +240,7 @@ class Tank(GamePhysicsObject):
             self.flag.orientation = -math.degrees(self.body.angle)
         # Else ensure that the tank has its normal max speed
         else:
-            self.max_speed = Tank.NORMAL_MAX_SPEED
+            self.max_speed = self.normal_max_speed
 
     def try_grab_flag(self, flag):
         """ Call this function to try to grab the flag, if the flag is not on other tank
@@ -238,7 +254,7 @@ class Tank(GamePhysicsObject):
                 # Grab the flag !
                 self.flag = flag
                 flag.is_on_tank = True
-                self.max_speed = Tank.FLAG_MAX_SPEED
+                self.max_speed = self.flag_max_speed
 
     def has_won(self):
         """ Check if the current tank has won (if it is has the flag and it is close to its start position). """
@@ -255,7 +271,7 @@ class Tank(GamePhysicsObject):
         self.shoot_cooldown = 1
         scalar = self.sprite.get_height() / images.TILE_SIZE
         pos = self.body.position + self.body.rotation_vector.rotated_degrees(90) * scalar
-        return Bullet(*pos, self.body.angle * 360 / math.tau, space)
+        return Bullet(*pos, self.body.angle * 360 / math.tau, self.bullet_speed, space)
 
     def respawn(self):
         self.body.position = self.start_position

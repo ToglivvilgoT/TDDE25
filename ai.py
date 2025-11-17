@@ -90,7 +90,6 @@ class Ai:
                 yield
                 continue
             next_coord = path.popleft()
-            yield
 
             # turning
             target_vector = Vec2d(*next_coord) - self.grid_pos
@@ -100,6 +99,7 @@ class Ai:
             elif current_angle < -MIN_ANGLE_DIF:
                 self.tank.turn_right()
             while abs(current_angle) > MIN_ANGLE_DIF:
+                self.tank.stop_moving()
                 yield
                 current_angle = target_vector.get_angle_between(self.tank.body.rotation_vector.rotated_degrees(90))
             self.tank.stop_turning()
@@ -113,7 +113,6 @@ class Ai:
                 yield
                 prev_distance = distance
                 distance = target_center.get_distance(self.tank.body.position)
-            self.tank.stop_moving()
             self.update_grid_pos()
 
     def find_shortest_path(self):

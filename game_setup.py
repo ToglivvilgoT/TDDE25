@@ -61,12 +61,13 @@ def create_tanks(
     tanks = []
     ais = []
     for (x, y, orientation), image in zip(positions, images.tanks):
-        tank = Tank(x, y, orientation, image, space)
-        tanks.append(tank)
         if player_amount <= 0:
+            tank = Tank(x, y, orientation, image, space, True)
             ais.append(Ai(tank, game_objects, tanks, space, current_map))
         else:
+            tank = Tank(x, y, orientation, image, space, False)
             player_amount -= 1
+        tanks.append(tank)
 
     return tanks, ais
 
