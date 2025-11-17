@@ -56,7 +56,7 @@ class GamePhysicsObject(GameObject):
         interaction of the objects.
     """
 
-    def __init__(self, x, y, orientation, sprite, space, movable, collision_type = 0):
+    def __init__(self, x, y, orientation, sprite, space, movable, collision_type=0):
         """ Takes as parameters the starting coordinate (x,y), the orientation, the sprite (aka the image
             representing the object), the physic engine object (space) and whether the object can be
             moved (movable).
@@ -154,7 +154,7 @@ class Tank(GamePhysicsObject):
     AI_BULLET_SPEED = BULLET_SPEED * 2.0
     MAX_HP = 2
     RESPAWN_PROTECTION_TIME = 3.0
-    
+
     COLLISION_TYPE = 2
 
     acceleration: int
@@ -169,7 +169,7 @@ class Tank(GamePhysicsObject):
     flag_max_speed: float
     bullet_speed: float
 
-    def __init__(self, x, y, orientation, sprite, space, unfair_ai = False):
+    def __init__(self, x, y, orientation, sprite, space, unfair_ai):
         super().__init__(x, y, orientation, sprite, space, True, self.COLLISION_TYPE)
         self.acceleration = 0
         self.rotation = 0
@@ -183,8 +183,8 @@ class Tank(GamePhysicsObject):
             self.flag_max_speed = Tank.FLAG_MAX_SPEED
             self.bullet_speed = Tank.BULLET_SPEED
 
-        self.flag = None 
-        self.max_speed = self.normal_max_speed 
+        self.flag = None
+        self.max_speed = self.normal_max_speed
         self.start_position = pymunk.Vec2d(x, y)
 
     def accelerate(self):
@@ -298,7 +298,7 @@ class Box(GamePhysicsObject):
     MAX_HP = 2
     hp = MAX_HP
 
-    def __init__(self, x, y, sprite, movable, space, destructible, collision_type = 0):
+    def __init__(self, x, y, sprite, movable, space, destructible, collision_type=0):
         """ It takes as arguments the coordinate of the starting position of the box (x,y) and the box model (boxmodel). """
         super().__init__(x, y, 0, sprite, space, movable, collision_type)
         self.destructible = destructible

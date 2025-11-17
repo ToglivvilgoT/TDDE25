@@ -33,7 +33,7 @@ def create_bases(positions: list[tuple[float, float, float]]) -> list[GameObject
     for (x, y, _), image in zip(positions, images.bases):
         base = GameVisibleObject(x, y, image)
         bases.append(base)
-    
+
     return bases
 
 
@@ -56,7 +56,7 @@ def create_tanks(
         player_amount: int,
         game_objects: list[GameObject],
         current_map: Map,
-        ) -> tuple[list[Tank], list[Ai]]:
+) -> tuple[list[Tank], list[Ai]]:
     """Creates and returns a list of tanks and AI:s."""
     tanks = []
     ais = []

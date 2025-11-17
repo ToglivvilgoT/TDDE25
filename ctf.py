@@ -84,7 +84,7 @@ def update(
         update_dt: float,
         scores: dict[Tank, int],
         player_amount: int,
-        ):
+):
     """ Runs one iteration of the update loop for the game.
         Returns True if game should quit, false other wise.
     """

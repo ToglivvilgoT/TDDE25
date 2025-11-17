@@ -183,4 +183,3 @@ class Ai:
 
         box_type = self.current_map.boxAt(*coord)
         return box_type == 0 or box_type == 2
-
